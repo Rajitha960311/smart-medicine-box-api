@@ -37,7 +37,7 @@ public class WelcomeController {
 	
 	@PostMapping(value = "/medInfo")
 	public String saveMedInfo(@RequestBody String medInfo) throws ParseException {
-		
+		System.out.println(medInfo);
 		//String medInfo = "/101/Vitamin/Capsule/After meal/50/No/8:30 a.m./1/3:00 p.m./1/9:00 p.m/2";
 		String[] result = medInfo.split("/");
 		
@@ -104,18 +104,17 @@ public class WelcomeController {
 	@GetMapping("/medInfo/{id}")
 	public String getMedInfo(@PathVariable String id) throws ParseException {
 		
-		System.out.println("calling by nodemcu");
-		String msg="";
+		System.out.println("Tag ID :"+id);
+		String msg="a";
 		String remindMsg = "";
 		
 		try {
 			Optional<MedInfoMaster> medInfoMaster = service.findByID(id);
 			List<MedInfoDetail> medInfoDetailList = service.getReminderTimes(id);
-			
 			String medName = medInfoMaster.get().getMedName();
-			String unit = medInfoMaster.get().getUnit();
 			String intakeAdvice = medInfoMaster.get().getIntakeAdvice();
 			int inventory = medInfoMaster.get().getInventory();
+			String unit = medInfoMaster.get().getUnit();
 			boolean a = medInfoMaster.get().isAsNeeded();
 			String asNeeded = "";
 			if(a == true)
@@ -123,32 +122,74 @@ public class WelcomeController {
 			else
 				asNeeded="No";
 			
-			msg = medName+" "+unit+" "+intakeAdvice+" "+inventory+" "+asNeeded;
+			//msg = medName+" "+unit+" "+intakeAdvice+" "+inventory+" "+asNeeded;
 			
 			SimpleDateFormat tf = new SimpleDateFormat("HH:mm");
 			DateFormat outputformat = new SimpleDateFormat("hh:mm aa");
+			
+			Date currentTime = tf.parse(tf.format(new Date()));
+			String reminderTime=""; int dosage=0;
+			for(MedInfoDetail medDetail :medInfoDetailList) {
+				
+				Date reminder = tf.parse(medDetail.getTime());
+				if(reminder.compareTo(currentTime)==0) {
+					//remindMsg = "Please take "+medDetail.getDosage()+" "+unit+" now";
+					msg = "Please take now "+medDetail.getDosage()+" "+unit;
+				}
+				
+				if(reminder.compareTo(currentTime)>0) {
+					//remindMsg = "The next dose is at " +outputformat.format(reminder);
+					reminderTime = outputformat.format(reminder);
+					dosage = medDetail.getDosage();
+					msg = "This is the "+medName+" bottle please take "+dosage+" "+unit+" "+intakeAdvice+" at "+reminderTime;
+					break;
+				}
+			}
+			
+			//msg = msg +" "+remindMsg;	
+			
+			
+		} catch (Exception e) {
+			System.out.println(e);
+		}
+ 
+		System.out.println(msg);
+		return msg;
+	   
+	 }
+	
+	@GetMapping("/medInfo/alarm")
+	public String checkReminders() throws ParseException  {
+		
+		System.out.println("calling check reminders");
+		String haveReminder = "false";
+		
+		try {
+
+			List<MedInfoDetail> medInfoDetailList = service.getAllReminderTimes();
+			
+			SimpleDateFormat tf = new SimpleDateFormat("HH:mm");
 			
 			Date currentTime = tf.parse(tf.format(new Date()));
 			
 			for(MedInfoDetail medDetail :medInfoDetailList) {
 				
 				Date reminder = tf.parse(medDetail.getTime());
+				
 				if(reminder.compareTo(currentTime)==0) {
-					remindMsg = "Please take "+medDetail.getDosage()+" "+unit+" now";
+					haveReminder = "true";
 				}
 				
-				if(reminder.compareTo(currentTime)>0) {
-					remindMsg = "The next dose is at " +outputformat.format(reminder);;
-				}
-			}
+
+			}			
 			
-			msg = msg +" "+remindMsg;		
 		} catch (Exception e) {
-			// TODO: handle exception
+			System.out.println(e);
 		}
- 
-		return msg;
-	   
-	 }
+		
+		System.out.println(haveReminder);
+		return haveReminder;
+		
+	}
 	
 }

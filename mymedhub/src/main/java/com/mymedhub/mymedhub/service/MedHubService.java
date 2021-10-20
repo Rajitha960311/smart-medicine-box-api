@@ -44,5 +44,10 @@ public class MedHubService {
 		// TODO Auto-generated method stub
 		return medInfoDetailRepo.findByRFID(id);
 	}
+	
+	public List<MedInfoDetail> getAllReminderTimes() {
+		// TODO Auto-generated method stub
+		return medInfoDetailRepo.findAll();
+	}
 
 }
